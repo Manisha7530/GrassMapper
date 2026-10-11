@@ -281,15 +281,31 @@ Give a short, warm recommendation (3–5 sentences). Pick the 2–3 best spots, 
     try:
         resp = requests.post(
             OLLAMA_URL,
-            json={"model": model, "prompt": prompt, "stream": False},
-            timeout=60,
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "num_predict": 120,
+                },
+            },
+            timeout=(5, 180),
         )
+
         resp.raise_for_status()
-        return resp.json().get("response", "").strip()
-    except Exception as e:
-        return f"(AI unavailable – is Ollama running? Error: {e})"
+        result = resp.json().get("response", "").strip()
 
+        if not result:
+            return "No AI recommendation generated. Please try again."
 
+        return result
+
+    except requests.exceptions.Timeout:
+        return "AI is taking longer than expected. Please try again."
+
+    except requests.exceptions.RequestException as e:
+        print(f"Ollama request failed: {e}")
+        return "AI recommendations are temporarily unavailable."
 # ──────────────────────────────────────────────
 # Routes
 # ──────────────────────────────────────────────
